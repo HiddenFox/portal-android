@@ -63,6 +63,10 @@ class PortalService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun onProcessStatus(status: PortalProcessStatus) {
+        if (status.state == PortalProcessState.RESTARTING && recordUnexpectedDisconnect()) {
+            sendBroadcast(Intent(ACTION_KEEP_ALIVE_GUIDANCE).setPackage(packageName))
+            Log.w(TAG, "Keep-alive guidance threshold reached")
+        }
         updateLocks(status.state)
         updateForegroundNotification(status)
         sendBroadcast(
@@ -156,8 +160,22 @@ class PortalService : Service() {
         if (wifiLock?.isHeld == true) wifiLock?.release()
     }
 
+    private fun recordUnexpectedDisconnect(): Boolean {
+        val preferences = getSharedPreferences(KEEP_ALIVE_PREFERENCES, MODE_PRIVATE)
+        val previous = preferences.getStringSet(KEEP_ALIVE_DISCONNECT_TIMESTAMPS, emptySet())
+            .orEmpty()
+            .mapNotNull(String::toLongOrNull)
+        val trigger = DisconnectGuideTrigger()
+        val updated = trigger.recordDisconnect(previous, System.currentTimeMillis())
+        preferences.edit()
+            .putStringSet(KEEP_ALIVE_DISCONNECT_TIMESTAMPS, updated.map(Long::toString).toSet())
+            .apply()
+        return trigger.shouldShow(updated)
+    }
+
     companion object {
         const val ACTION_PORTAL_STATUS = "town.beings.portal.action.PORTAL_STATUS"
+        const val ACTION_KEEP_ALIVE_GUIDANCE = "town.beings.portal.action.KEEP_ALIVE_GUIDANCE"
         const val EXTRA_STATE = "state"
         const val EXTRA_PID = "pid"
         const val EXTRA_EXIT_CODE = "exit_code"
@@ -169,6 +187,8 @@ class PortalService : Service() {
         private const val WORKSPACE_DIRECTORY_NAME = "workspace"
         private const val NOTIFICATION_CHANNEL_ID = "portal"
         private const val NOTIFICATION_ID = 2_002
+        private const val KEEP_ALIVE_PREFERENCES = "keep_alive"
+        private const val KEEP_ALIVE_DISCONNECT_TIMESTAMPS = "unexpected_disconnect_timestamps"
         private const val NO_PID = -1L
         private const val NO_EXIT_CODE = Int.MIN_VALUE
 

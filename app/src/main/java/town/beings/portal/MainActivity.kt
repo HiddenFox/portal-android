@@ -28,6 +28,11 @@ class MainActivity : Activity() {
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == PortalService.ACTION_KEEP_ALIVE_GUIDANCE) {
+                Log.i(TAG, "Opening keep-alive guidance after repeated unexpected disconnects")
+                startActivity(KeepAliveGuideActivity.intent(this@MainActivity))
+                return
+            }
             if (intent.action != PortalService.ACTION_PORTAL_STATUS) return
             val receivedStatus = PortalStatusIntentParser.parse(intent) ?: return
             // Service cleanup emits STOPPED after FAILED; retain the failure so the recovery action stays visible.
@@ -70,6 +75,9 @@ class MainActivity : Activity() {
             Log.i(TAG, "Delivery scan requested")
             Toast.makeText(this, R.string.delivery_scan_queued, Toast.LENGTH_SHORT).show()
         }
+        findViewById<Button>(R.id.keep_alive_guide_button).setOnClickListener {
+            startActivity(KeepAliveGuideActivity.intent(this))
+        }
         findViewById<Button>(R.id.save_button).setOnClickListener {
             val result = runCatching {
                 configStore.save(
@@ -94,7 +102,10 @@ class MainActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        val filter = IntentFilter(PortalService.ACTION_PORTAL_STATUS)
+        val filter = IntentFilter().apply {
+            addAction(PortalService.ACTION_PORTAL_STATUS)
+            addAction(PortalService.ACTION_KEEP_ALIVE_GUIDANCE)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(statusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {

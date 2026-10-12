@@ -21,4 +21,14 @@
     <string name="status_restarting">RESTARTING — process PID %1$s; restart attempt %2$d.</string>
     <string name="status_stopped">STOPPED — process PID %1$s; restart attempt %2$d.</string>
     <string name="status_failed">FAILED — process PID %1$s; restart attempt %2$d. Start will reset Portal first.</string>
+    <string name="keep_alive_guide_button">后台保活指引</string>
+    <string name="keep_alive_guide_title">后台保活指引</string>
+    <string name="keep_alive_optimization_enabled">已允许忽略电池优化。仍建议按下方路径确认后台白名单设置。</string>
+    <string name="keep_alive_optimization_disabled">尚未允许忽略电池优化。请先打开系统设置，并完成下方的厂商白名单设置。</string>
+    <string name="keep_alive_steps_vivo">VIVO：设置 → 电池 → 后台高耗电 → 找到 Portal 并选择“允许”。</string>
+    <string name="keep_alive_steps_xiaomi">小米：设置 → 电池与性能 → 应用智能省电 → Portal → 选择“无限制”。</string>
+    <string name="keep_alive_steps_huawei">华为：设置 → 应用和服务 → 应用启动管理 → Portal → 关闭“自动管理”，并允许后台活动。</string>
+    <string name="keep_alive_steps_generic">请在系统设置中找到 Portal 的电池或后台运行设置，允许后台活动、关闭省电限制，并将应用加入后台白名单。</string>
+    <string name="open_battery_settings">打开电池优化设置</string>
+    <string name="battery_settings_unavailable">无法直接打开此设备的电池设置，请按上方路径手动设置。</string>
 </resources>

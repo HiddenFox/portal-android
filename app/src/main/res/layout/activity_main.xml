@@ -44,6 +44,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/scan_and_deliver" />
+        <Button
+            android:id="@+id/keep_alive_guide_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/keep_alive_guide_button" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
