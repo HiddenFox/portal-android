@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="process_status_label">进程状态</string>
     <string name="configuration_label">连接</string>
@@ -19,7 +19,7 @@
     <string name="keep_alive_optimization_enabled">已忽略电池优化。请继续确认下方的后台白名单设置。</string>
     <string name="keep_alive_optimization_disabled">电池优化仍处于开启状态。请打开系统设置，然后按下方厂商指引完成白名单设置。</string>
     <string name="keep_alive_steps_vivo">VIVO：设置 → 电池 → 后台高耗电 → Portal → 允许。</string>
-    <string name="keep_alive_steps_xiaomi">小米：设置 → 电量与性能 → 应用省电策略 → Portal → 无限制。</string>
+    <string name="keep_alive_steps_xiaomi">小米/红米（MIUI/HyperOS）：设置 → 电量与性能 → 应用省电策略 → Portal → 无限制；再在 设置 → 应用设置 → 应用管理 → Portal 打开「自启动」，并在最近任务里锁定 Portal 卡片。</string>
     <string name="keep_alive_steps_huawei">华为：设置 → 应用和服务 → 应用启动管理 → Portal → 关闭自动管理并允许后台活动。</string>
     <string name="keep_alive_steps_generic">在系统设置中找到 Portal 的电池或后台运行设置，允许后台运行、取消电池限制，并将 Portal 加入白名单。</string>
     <string name="open_battery_settings">打开电池优化设置</string>

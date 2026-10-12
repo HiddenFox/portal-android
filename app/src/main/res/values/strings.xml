@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="process_status_label">Process status</string>
     <string name="configuration_label">Connection</string>
@@ -19,7 +19,7 @@
     <string name="keep_alive_optimization_enabled">Battery optimization is already ignored. Confirm the background allow-list setting below.</string>
     <string name="keep_alive_optimization_disabled">Battery optimization is still enabled. Open system settings, then complete the manufacturer allow-list setting below.</string>
     <string name="keep_alive_steps_vivo">VIVO: Settings → Battery → Background high power usage → Portal → Allow.</string>
-    <string name="keep_alive_steps_xiaomi">Xiaomi: Settings → Battery &amp; performance → App battery saver → Portal → No restrictions.</string>
+    <string name="keep_alive_steps_xiaomi">Xiaomi/Redmi (MIUI/HyperOS): Settings → Battery &amp; performance → App battery saver → Portal → No restrictions. Also enable Autostart (Settings → Apps → Manage apps → Portal → Autostart) and lock the Portal card in Recents.</string>
     <string name="keep_alive_steps_huawei">Huawei: Settings → Apps &amp; services → App launch → Portal → Disable automatic management and allow background activity.</string>
     <string name="keep_alive_steps_generic">In system settings, find Portal battery or background settings. Allow background activity, disable battery restrictions, and add Portal to the allow-list.</string>
     <string name="open_battery_settings">Open battery optimization settings</string>
