@@ -38,6 +38,12 @@
                 android:layout_weight="1"
                 android:text="@string/stop" />
         </LinearLayout>
+        <Button
+            android:id="@+id/delivery_scan_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/scan_and_deliver" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -62,6 +68,33 @@
             android:hint="@string/mcp_token_hint"
             android:inputType="textMultiLine|textNoSuggestions"
             android:minLines="2" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/delivery_configuration_label"
+            android:textStyle="bold" />
+        <EditText
+            android:id="@+id/source_dir_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/source_dir_hint"
+            android:inputType="textUri" />
+        <EditText
+            android:id="@+id/transport_url_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/transport_url_hint"
+            android:inputType="textUri" />
+        <EditText
+            android:id="@+id/transport_token_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/transport_token_hint"
+            android:inputType="textPassword" />
         <Button
             android:id="@+id/save_button"
             android:layout_width="wrap_content"

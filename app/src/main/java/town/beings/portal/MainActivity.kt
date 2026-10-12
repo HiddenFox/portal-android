@@ -1,6 +1,8 @@
 package town.beings.portal
 
 import android.app.Activity
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -17,6 +19,9 @@ import java.io.File
 class MainActivity : Activity() {
     private lateinit var connectInput: EditText
     private lateinit var mcpTokenInput: EditText
+    private lateinit var sourceDirInput: EditText
+    private lateinit var transportUrlInput: EditText
+    private lateinit var transportTokenInput: EditText
     private lateinit var statusView: TextView
     private lateinit var processActions: PortalServiceCommandHandler
     private var currentStatus = PortalProcessStatus(PortalProcessState.STOPPED)
@@ -38,7 +43,15 @@ class MainActivity : Activity() {
         setContentView(R.layout.activity_main)
         connectInput = findViewById(R.id.connect_input)
         mcpTokenInput = findViewById(R.id.mcp_token_input)
+        sourceDirInput = findViewById(R.id.source_dir_input)
+        transportUrlInput = findViewById(R.id.transport_url_input)
+        transportTokenInput = findViewById(R.id.transport_token_input)
         statusView = findViewById(R.id.portal_status)
+        val configStore = PortalConfigStore(File(filesDir, PORTAL_CONFIG_NAME))
+        val deliveryConfig = configStore.readDeliveryConfig()
+        sourceDirInput.setText(deliveryConfig.sourceDir)
+        transportUrlInput.setText(deliveryConfig.transportUrl.orEmpty())
+        transportTokenInput.setText(deliveryConfig.transportBearerToken.orEmpty())
         processActions = PortalServiceCommandHandler(object : PortalServiceCommands {
             override fun start() = PortalService.start(this@MainActivity)
             override fun stop() = PortalService.stop(this@MainActivity)
@@ -47,11 +60,24 @@ class MainActivity : Activity() {
             processActions.start(currentStatus.state)
         }
         findViewById<Button>(R.id.stop_button).setOnClickListener { processActions.stop() }
+        findViewById<Button>(R.id.delivery_scan_button).setOnClickListener {
+            if (!hasRecordingReadPermission()) {
+                requestPermissions(arrayOf(recordingReadPermission()), REQUEST_RECORDING_PERMISSION)
+                Toast.makeText(this, R.string.recording_permission_required, Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            DeliveryWorkScheduler.enqueueScan(this)
+            Log.i(TAG, "Delivery scan requested")
+            Toast.makeText(this, R.string.delivery_scan_queued, Toast.LENGTH_SHORT).show()
+        }
         findViewById<Button>(R.id.save_button).setOnClickListener {
             val result = runCatching {
-                PortalConfigStore(File(filesDir, PORTAL_CONFIG_NAME)).save(
+                configStore.save(
                     connect = connectInput.text.toString(),
                     mcpToken = mcpTokenInput.text.toString(),
+                    sourceDir = sourceDirInput.text.toString(),
+                    transportUrl = transportUrlInput.text.toString(),
+                    transportBearerToken = transportTokenInput.text.toString(),
                 )
             }
             if (result.isFailure) {
@@ -91,9 +117,19 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun hasRecordingReadPermission(): Boolean =
+        checkSelfPermission(recordingReadPermission()) == PackageManager.PERMISSION_GRANTED
+
+    private fun recordingReadPermission(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
     private companion object {
         const val TAG = "MainActivity"
         const val PORTAL_CONFIG_NAME = "portal.toml"
+        const val REQUEST_RECORDING_PERMISSION = 5_005
     }
 }
 

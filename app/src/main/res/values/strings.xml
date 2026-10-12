@@ -2,11 +2,18 @@
 <resources>
     <string name="process_status_label">Process status</string>
     <string name="configuration_label">Configuration</string>
+    <string name="delivery_configuration_label">Delivery configuration</string>
     <string name="connect_hint">Relay connect credential</string>
     <string name="mcp_token_hint">MCP authentication token (optional)</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
     <string name="save_configuration">Save configuration</string>
+    <string name="scan_and_deliver">Scan and deliver</string>
+    <string name="delivery_scan_queued">Delivery scan queued.</string>
+    <string name="recording_permission_required">Recording access is required. Grant it, then tap Scan and deliver again.</string>
+    <string name="source_dir_hint">Recording source directory</string>
+    <string name="transport_url_hint">HTTP PUT transport URL</string>
+    <string name="transport_token_hint">HTTP bearer token (optional)</string>
     <string name="configuration_saved">Configuration saved. Portal restarted to apply it.</string>
     <string name="configuration_save_failed">Could not save Portal configuration. Check available storage and try again.</string>
     <string name="not_available">not available</string>

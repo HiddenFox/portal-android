@@ -40,4 +40,19 @@ class PortalConfigStoreTest {
             file.delete()
         }
     }
+
+    @Test
+    fun savesAndReadsDeliveryConfiguration() {
+        val file = File.createTempFile("portal-config", ".toml")
+        try {
+            val store = PortalConfigStore(file)
+            store.save(null, null, "/recordings", "https://relay.example/put", "token")
+            assertEquals(
+                DeliveryConfig("/recordings", "https://relay.example/put", "token"),
+                store.readDeliveryConfig(),
+            )
+        } finally {
+            file.delete()
+        }
+    }
 }
