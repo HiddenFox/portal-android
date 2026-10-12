@@ -226,7 +226,8 @@ private class ProcessBuilderPortalLauncher(
 
 private class AndroidPortalProcess(private val process: Process) : PortalProcess {
     override val pid: Long
-        get() = process.pid()
+        // java.lang.Process.pid() requires API 34; on Android the ProcessImpl hashCode is the pid.
+        get() = process.hashCode().toLong()
 
     override fun destroy() {
         process.destroy()

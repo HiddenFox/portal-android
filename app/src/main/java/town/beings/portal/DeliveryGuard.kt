@@ -1,6 +1,7 @@
 package town.beings.portal
 
 import android.content.Context
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.ListenableWorker.Result as WorkResult
