@@ -13,10 +13,6 @@ class KeepAliveGuideActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_keep_alive_guide)
 
-        val ignoringOptimizations = KeepAliveGuide.isIgnoringBatteryOptimizations(this)
-        findViewById<TextView>(R.id.keep_alive_optimization_status).setText(
-            if (ignoringOptimizations) R.string.keep_alive_optimization_enabled else R.string.keep_alive_optimization_disabled,
-        )
         findViewById<TextView>(R.id.keep_alive_manufacturer_steps).setText(
             when (KeepAliveGuide.currentManufacturer()) {
                 DeviceManufacturer.VIVO -> R.string.keep_alive_steps_vivo
@@ -26,11 +22,28 @@ class KeepAliveGuideActivity : Activity() {
             },
         )
         findViewById<Button>(R.id.open_battery_settings_button).setOnClickListener {
-            openBatterySettings(ignoringOptimizations)
+            openBatterySettings()
+        }
+        refreshOptimizationStatus()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_BATTERY_SETTINGS) {
+            Log.i(TAG, "Returned from battery optimization settings (resultCode=$resultCode)")
+            refreshOptimizationStatus()
         }
     }
 
-    private fun openBatterySettings(alreadyIgnoringOptimizations: Boolean) {
+    private fun refreshOptimizationStatus() {
+        val ignoringOptimizations = KeepAliveGuide.isIgnoringBatteryOptimizations(this)
+        findViewById<TextView>(R.id.keep_alive_optimization_status).setText(
+            if (ignoringOptimizations) R.string.keep_alive_optimization_enabled else R.string.keep_alive_optimization_disabled,
+        )
+    }
+
+    private fun openBatterySettings() {
+        val alreadyIgnoringOptimizations = KeepAliveGuide.isIgnoringBatteryOptimizations(this)
         val preferredIntent = if (alreadyIgnoringOptimizations) {
             KeepAliveGuide.batteryOptimizationSettingsIntent()
         } else {
@@ -48,11 +61,13 @@ class KeepAliveGuideActivity : Activity() {
             return
         }
         Log.i(TAG, "Opening battery optimization settings")
-        startActivity(intent)
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, REQUEST_BATTERY_SETTINGS)
     }
 
     companion object {
         private const val TAG = "KeepAliveGuide"
+        private const val REQUEST_BATTERY_SETTINGS = 1001
 
         fun intent(context: android.content.Context): Intent =
             Intent(context, KeepAliveGuideActivity::class.java)

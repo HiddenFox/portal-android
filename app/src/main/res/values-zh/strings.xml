@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="process_status_label">进程状态</string>
+    <string name="configuration_label">连接</string>
+    <string name="connect_hint">Being 连接地址</string>
+    <string name="start">启动</string>
+    <string name="stop">停止</string>
+    <string name="save_configuration">保存连接</string>
+    <string name="invalid_loom_link">请输入以 http:// 或 https:// 开头、且带 token 参数的 Loom 链接。</string>
+    <string name="configuration_saved">连接已保存，Portal 已重启生效。</string>
+    <string name="configuration_save_failed">无法保存 Portal 连接，请检查存储空间后重试。</string>
+    <string name="not_available">不可用</string>
+    <string name="status_running">运行中 — PID %1$s；重启计数 %2$d。Relay 连接尚未确认。</string>
+    <string name="status_restarting">重启中 — PID %1$s；重启计数 %2$d。</string>
+    <string name="status_stopped">已停止 — PID %1$s；重启计数 %2$d。</string>
+    <string name="status_failed">已失败 — PID %1$s；重启计数 %2$d。点击启动会先重置 Portal。</string>
+    <string name="keep_alive_guide_button">后台保活指南</string>
+    <string name="keep_alive_guide_title">后台保活指南</string>
+    <string name="keep_alive_optimization_enabled">已忽略电池优化。请继续确认下方的后台白名单设置。</string>
+    <string name="keep_alive_optimization_disabled">电池优化仍处于开启状态。请打开系统设置，然后按下方厂商指引完成白名单设置。</string>
+    <string name="keep_alive_steps_vivo">VIVO：设置 → 电池 → 后台高耗电 → Portal → 允许。</string>
+    <string name="keep_alive_steps_xiaomi">小米：设置 → 电量与性能 → 应用省电策略 → Portal → 无限制。</string>
+    <string name="keep_alive_steps_huawei">华为：设置 → 应用和服务 → 应用启动管理 → Portal → 关闭自动管理并允许后台活动。</string>
+    <string name="keep_alive_steps_generic">在系统设置中找到 Portal 的电池或后台运行设置，允许后台运行、取消电池限制，并将 Portal 加入白名单。</string>
+    <string name="open_battery_settings">打开电池优化设置</string>
+    <string name="battery_settings_unavailable">无法在此设备上打开电池设置，请按上面的路径手动操作。</string>
+</resources>
