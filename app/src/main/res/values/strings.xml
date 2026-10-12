@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="process_status_label">Process status</string>
+    <string name="configuration_label">Configuration</string>
+    <string name="connect_hint">Relay connect credential</string>
+    <string name="mcp_token_hint">MCP authentication token (optional)</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="save_configuration">Save configuration</string>
+    <string name="configuration_saved">Configuration saved. Portal restarted to apply it.</string>
+    <string name="configuration_save_failed">Could not save Portal configuration. Check available storage and try again.</string>
+    <string name="not_available">not available</string>
+    <string name="status_running">RUNNING — process PID %1$s; restart attempt %2$d. Relay connection is not confirmed.</string>
+    <string name="status_restarting">RESTARTING — process PID %1$s; restart attempt %2$d.</string>
+    <string name="status_stopped">STOPPED — process PID %1$s; restart attempt %2$d.</string>
+    <string name="status_failed">FAILED — process PID %1$s; restart attempt %2$d. Start will reset Portal first.</string>
+</resources>
