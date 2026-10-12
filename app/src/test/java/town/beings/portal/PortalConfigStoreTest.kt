@@ -8,49 +8,34 @@ import kotlin.test.assertTrue
 
 class PortalConfigStoreTest {
     @Test
-    fun serializesTomlStringsWithEscaping() {
-        val content = PortalTomlSerializer.serialize("relay\\\"line\nnext", "mcp\ttoken")
+    fun serializesOnlyPrivateWorkspaceAndConnectLink() {
+        val content = PortalTomlSerializer.serialize(
+            "/data/user/0/town.beings.portal/files/workspace",
+            "https://echo.beings.town/frank/?token=abc\\\"next",
+        )
         assertEquals(
-            "workspace = \"./workspace\"\n" +
-                "connect = \"relay\\\\\\\"line\\nnext\"\n" +
-                "portal_mcp_token = \"mcp\\ttoken\"\n",
+            "workspace = \"/data/user/0/town.beings.portal/files/workspace\"\n" +
+                "connect_link = \"https://echo.beings.town/frank/?token=abc\\\\\\\"next\"\n",
             content,
         )
+        assertFalse(content.contains("portal_mcp_token"))
+        assertFalse(content.contains("source_dir"))
+        assertFalse(content.contains("workspace = \"./workspace\""))
     }
 
     @Test
-    fun skipsEmptyOptionalValues() {
-        val content = PortalTomlSerializer.serialize("  ", "")
-        assertEquals("workspace = \"./workspace\"\n", content)
-        assertFalse(content.contains("token ="))
-        assertFalse(content.contains("connect ="))
-    }
-
-    @Test
-    fun saveOverwritesExistingConfiguration() {
+    fun saveOverwritesObsoleteConfigurationAndReadsLink() {
         val file = File.createTempFile("portal-config", ".toml")
         try {
-            file.writeText("token = \"obsolete\"\n")
-            PortalConfigStore(file).save("relay", null)
+            file.writeText("connect = \"obsolete\"\nportal_mcp_token = \"old\"\n")
+            val store = PortalConfigStore(file, File("/data/user/0/town.beings.portal/files/workspace"))
+            val link = "https://echo.beings.town/frank/?token=abc"
+            store.save(link)
             val content = file.readText()
-            assertTrue(content.contains("connect = \"relay\""))
-            assertFalse(content.contains("token ="))
-            assertEquals("workspace = \"./workspace\"\nconnect = \"relay\"\n", content)
-        } finally {
-            file.delete()
-        }
-    }
-
-    @Test
-    fun savesAndReadsDeliveryConfiguration() {
-        val file = File.createTempFile("portal-config", ".toml")
-        try {
-            val store = PortalConfigStore(file)
-            store.save(null, null, "/recordings", "https://relay.example/put", "token")
-            assertEquals(
-                DeliveryConfig("/recordings", "https://relay.example/put", "token"),
-                store.readDeliveryConfig(),
-            )
+            assertEquals(link, store.readConnectLink())
+            assertTrue(content.contains("connect_link = \"$link\""))
+            assertFalse(content.contains("portal_mcp_token"))
+            assertFalse(content.contains("connect ="))
         } finally {
             file.delete()
         }

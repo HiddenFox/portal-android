@@ -2,40 +2,25 @@ package town.beings.portal
 
 import java.io.File
 
-/** Writes the Portal configuration consumed directly by the native Portal executable. */
-class PortalConfigStore(private val file: File) {
-    fun save(
-        connect: String?,
-        mcpToken: String?,
-        sourceDir: String? = null,
-        transportUrl: String? = null,
-        transportBearerToken: String? = null,
-    ) {
-        file.writeText(
-            PortalTomlSerializer.serialize(
-                connect,
-                mcpToken,
-                sourceDir,
-                transportUrl,
-                transportBearerToken,
-            ),
-        )
+/** Writes the configuration consumed directly by the native Portal executable. */
+class PortalConfigStore(
+    private val file: File,
+    private val workspace: File,
+) {
+    fun save(connectLink: String) {
+        file.writeText(PortalTomlSerializer.serialize(workspace.absolutePath, connectLink))
     }
 
-    fun readDeliveryConfig(): DeliveryConfig {
-        if (!file.isFile) return DeliveryConfig()
-        val values = file.readLines()
+    fun readConnectLink(): String? {
+        if (!file.isFile) return null
+        return file.readLines()
             .mapNotNull { line ->
                 TOML_VALUE.matchEntire(line.trim())?.let { match ->
                     match.groupValues[1] to unescapeString(match.groupValues[2])
                 }
             }
-            .toMap()
-        return DeliveryConfig(
-            sourceDir = values["source_dir"]?.takeIf { it.isNotBlank() } ?: DeliveryConfig.DEFAULT_SOURCE_DIR,
-            transportUrl = values["transport_url"]?.takeIf { it.isNotBlank() },
-            transportBearerToken = values["transport_bearer_token"]?.takeIf { it.isNotBlank() },
-        )
+            .toMap()["connect_link"]
+            ?.takeIf { it.isNotBlank() }
     }
 
     private companion object {
@@ -66,45 +51,19 @@ class PortalConfigStore(private val file: File) {
     }
 }
 
-data class DeliveryConfig(
-    val sourceDir: String = DEFAULT_SOURCE_DIR,
-    val transportUrl: String? = null,
-    val transportBearerToken: String? = null,
-) {
-    companion object {
-        const val DEFAULT_SOURCE_DIR = "/storage/emulated/0/Recordings"
-    }
-}
-
 object PortalTomlSerializer {
-    fun serialize(
-        connect: String?,
-        mcpToken: String?,
-        sourceDir: String? = null,
-        transportUrl: String? = null,
-        transportBearerToken: String? = null,
-    ): String = buildString {
-        append("workspace = \"./workspace\"\n")
-        connect?.takeIf { it.isNotBlank() }?.let {
-            append("connect = \"")
-            append(escapeString(it))
-            append("\"\n")
-        }
-        mcpToken?.takeIf { it.isNotBlank() }?.let {
-            append("portal_mcp_token = \"")
-            append(escapeString(it))
-            append("\"\n")
-        }
-        sourceDir?.takeIf { it.isNotBlank() }?.let { appendString("source_dir", it) }
-        transportUrl?.takeIf { it.isNotBlank() }?.let { appendString("transport_url", it) }
-        transportBearerToken?.takeIf { it.isNotBlank() }?.let { appendString("transport_bearer_token", it) }
+    fun serialize(workspace: String, connectLink: String): String = buildString {
+        appendString("workspace", workspace)
+        appendString("connect_link", connectLink)
     }
 
     private fun StringBuilder.appendString(name: String, value: String) {
         append(name)
-        append(" = \"")
+        append(" = ")
+        append('"')
         append(escapeString(value))
-        append("\"\n")
+        append('"')
+        append('\n')
     }
 
     private fun escapeString(value: String): String = buildString {
@@ -112,7 +71,7 @@ object PortalTomlSerializer {
             append(
                 when (character) {
                     '\\' -> "\\\\"
-                    '"' -> "\\\""
+                    '\"' -> "\\\""
                     '\b' -> "\\b"
                     '\t' -> "\\t"
                     '\n' -> "\\n"

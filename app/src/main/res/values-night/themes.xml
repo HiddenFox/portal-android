@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Portal" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#5EEAD4</item>
+        <item name="colorOnPrimary">#003731</item>
+        <item name="colorSecondary">#93C5FD</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
