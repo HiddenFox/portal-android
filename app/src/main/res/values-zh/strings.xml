@@ -31,4 +31,6 @@
     <string name="keep_alive_steps_generic">在系统设置中找到 Portal 的电池或后台运行设置，允许后台运行、取消电池限制，并将 Portal 加入白名单。</string>
     <string name="open_battery_settings">打开电池优化设置</string>
     <string name="battery_settings_unavailable">无法在此设备上打开电池设置，请按上面的路径手动操作。</string>
+    <string name="permission_recording_denied_hint">录音读取权限未开启，通话录音将无法获取。点此前往应用设置。</string>
+    <string name="keep_alive_hint">后台保活未设置，系统可能在后台停止 Portal。点此查看设置指南。</string>
 </resources>

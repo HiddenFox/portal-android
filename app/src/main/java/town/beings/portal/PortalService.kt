@@ -61,8 +61,21 @@ class PortalService : Service() {
             stopSelf(startId)
             return START_NOT_STICKY
         }
+        logRuntimePermissionStatus()
         controller.start()
         return START_NOT_STICKY
+    }
+
+    private fun logRuntimePermissionStatus() {
+        val recordingPermission = RuntimePermissions.recordingPermissionForApi(Build.VERSION.SDK_INT)
+        val recordingGranted = checkSelfPermission(recordingPermission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val notificationsGranted = Build.VERSION.SDK_INT < 33 ||
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        Log.i(
+            TAG,
+            "Permission status: recording=$recordingGranted notifications=$notificationsGranted" +
+                if (notificationsGranted) "" else " (foreground notification hidden by denied permission)",
+        )
     }
 
     override fun onDestroy() {

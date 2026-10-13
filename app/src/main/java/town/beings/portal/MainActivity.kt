@@ -1,4 +1,4 @@
-﻿package town.beings.portal
+package town.beings.portal
 
 import android.app.Activity
 import android.content.BroadcastReceiver
@@ -35,6 +35,8 @@ class MainActivity : Activity() {
     private val logLines = ArrayDeque<String>()
     private var linkEditMode = false
     private lateinit var configStore: PortalConfigStore
+    private lateinit var permissionHintView: TextView
+    private lateinit var keepAliveHintView: TextView
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -55,12 +57,10 @@ class MainActivity : Activity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Android 13+ media audio permission: needed to read sound_recorder files via MediaStore
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            val pm = checkSelfPermission(android.Manifest.permission.READ_MEDIA_AUDIO)
-            if (pm != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.READ_MEDIA_AUDIO), 1)
-            }
+        // Combined runtime-permission request (recording access + notifications on 13+).
+        val missingRuntimePermissions = RuntimePermissions.missing(this)
+        if (missingRuntimePermissions.isNotEmpty()) {
+            requestPermissions(missingRuntimePermissions.toTypedArray(), REQUEST_RUNTIME_PERMISSIONS)
         }
 
         super.onCreate(savedInstanceState)
@@ -76,6 +76,8 @@ class MainActivity : Activity() {
         statusView = findViewById(R.id.portal_status)
         logScroll = findViewById(R.id.log_scroll)
         logView = findViewById(R.id.portal_log)
+        permissionHintView = findViewById(R.id.permission_hint)
+        keepAliveHintView = findViewById(R.id.keep_alive_hint)
         configStore = PortalConfigStore(
             file = File(filesDir, PORTAL_CONFIG_NAME),
             workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME),
@@ -107,6 +109,12 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.keep_alive_guide_button).setOnClickListener {
             startActivity(KeepAliveGuideActivity.intent(this))
         }
+        permissionHintView.setOnClickListener {
+            startActivity(appDetailsSettingsIntent())
+        }
+        keepAliveHintView.setOnClickListener {
+            startActivity(KeepAliveGuideActivity.intent(this))
+        }
         editLinkButton.setOnClickListener {
             linkEditMode = true
             connectInput.setText(configStore.readConnectLink().orEmpty())
@@ -133,6 +141,7 @@ class MainActivity : Activity() {
         renderConfigUi()
         renderStatus(currentStatus)
         renderLogSnapshot()
+        renderKeepAliveHint()
     }
 
     override fun onStart() {
@@ -148,11 +157,31 @@ class MainActivity : Activity() {
         } else {
             registerReceiver(statusReceiver, filter)
         }
+        renderKeepAliveHint()
     }
 
     override fun onStop() {
         unregisterReceiver(statusReceiver)
         super.onStop()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_RUNTIME_PERMISSIONS) return
+        val denied = permissions.filterIndexed { index, _ ->
+            grantResults.getOrNull(index) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (denied.isEmpty()) {
+            Log.i(TAG, "Runtime permissions granted")
+            permissionHintView.visibility = View.GONE
+        } else {
+            Log.w(TAG, "Runtime permissions denied: $denied")
+            renderPermissionHint()
+        }
     }
 
     private fun isConfigured(): Boolean {
@@ -227,6 +256,22 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun renderPermissionHint() {
+        permissionHintView.visibility =
+            if (RuntimePermissions.recordingPermanentlyDenied(this)) View.VISIBLE else View.GONE
+    }
+
+    private fun renderKeepAliveHint() {
+        keepAliveHintView.visibility =
+            if (KeepAliveGuide.isIgnoringBatteryOptimizations(this)) View.GONE else View.VISIBLE
+    }
+
+    private fun appDetailsSettingsIntent(): Intent =
+        Intent(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            android.net.Uri.fromParts("package", packageName, null),
+        )
+
     private fun isValidLoomLink(value: String): Boolean = runCatching {
         val uri = URI(value)
         uri.scheme in setOf("http", "https") &&
@@ -241,6 +286,7 @@ class MainActivity : Activity() {
         const val PORTAL_CONFIG_NAME = "portal.toml"
         const val WORKSPACE_DIRECTORY_NAME = "workspace"
         const val MAX_LOG_LINES = 300
+        const val REQUEST_RUNTIME_PERMISSIONS = 100
     }
 }
 
