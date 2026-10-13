@@ -86,6 +86,12 @@ class MainActivity : Activity() {
             override fun start() = PortalService.start(this@MainActivity)
             override fun stop() = PortalService.stop(this@MainActivity)
         })
+        // Diagnostic/automation hook: am start --ez town.beings.portal.AUTOSTART true
+        if (intent?.getBooleanExtra("town.beings.portal.AUTOSTART", false) == true) {
+            val activeNow = currentStatus.state == PortalProcessState.RUNNING ||
+                currentStatus.state == PortalProcessState.RESTARTING
+            if (!activeNow) processActions.start(currentStatus.state)
+        }
         startButton = findViewById(R.id.start_button)
         stopButton = findViewById(R.id.stop_button)
         startButton.setOnClickListener {
