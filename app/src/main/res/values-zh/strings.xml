@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="process_status_label">进程状态</string>
     <string name="configuration_label">连接</string>
@@ -7,13 +7,20 @@
     <string name="stop">停止</string>
     <string name="save_configuration">保存连接</string>
     <string name="invalid_loom_link">请输入以 http:// 或 https:// 开头、且带 token 参数的 Loom 链接。</string>
-    <string name="configuration_saved">连接已保存，Portal 已重启生效。</string>
+    <string name="configuration_saved">连接已保存，正在重新连接…</string>
     <string name="configuration_save_failed">无法保存 Portal 连接，请检查存储空间后重试。</string>
     <string name="not_available">不可用</string>
-    <string name="status_running">运行中 — PID %1$s；重启计数 %2$d。Relay 连接尚未确认。</string>
+    <string name="status_running">运行中 — PID %1$s；重启计数 %2$d。</string>
     <string name="status_restarting">重启中 — PID %1$s；重启计数 %2$d。</string>
     <string name="status_stopped">已停止 — PID %1$s；重启计数 %2$d。</string>
     <string name="status_failed">已失败 — PID %1$s；重启计数 %2$d。点击启动会先重置 Portal。</string>
+    <string name="edit_link">修改链接</string>
+    <string name="log_title">Portal 日志</string>
+    <string name="relay_connecting">Relay 连接中…</string>
+    <string name="relay_connected">Relay 已连接</string>
+    <string name="relay_retrying">Relay 重连中…</string>
+    <string name="relay_rejected">Relay 拒绝握手 — 请检查链接/token</string>
+    <string name="relay_invalid_link">链接无效</string>
     <string name="keep_alive_guide_button">后台保活指南</string>
     <string name="keep_alive_guide_title">后台保活指南</string>
     <string name="keep_alive_optimization_enabled">已忽略电池优化。请继续确认下方的后台白名单设置。</string>

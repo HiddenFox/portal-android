@@ -1,4 +1,4 @@
-﻿package town.beings.portal
+package town.beings.portal
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,6 +23,12 @@ class PortalService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
 
+    @Volatile
+    private var lastStatus: PortalProcessStatus? = null
+
+    @Volatile
+    private var relayState = RelayConnectionState.CONNECTING
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -32,6 +38,7 @@ class PortalService : Service() {
                 config = File(filesDir, PORTAL_CONFIG_NAME),
                 caBundle = File(filesDir, CA_BUNDLE_NAME),
                 callbackHandler = mainHandler,
+                onLogLine = ::onPortalLogLine,
             ),
             scheduler = RestartScheduler { delayMillis, task ->
                 mainHandler.postDelayed(task, delayMillis)
@@ -64,6 +71,8 @@ class PortalService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun onProcessStatus(status: PortalProcessStatus) {
+        lastStatus = status
+        if (status.state == PortalProcessState.RUNNING) setRelayState(RelayConnectionState.CONNECTING)
         if (status.state == PortalProcessState.RESTARTING && recordUnexpectedDisconnect()) {
             sendBroadcast(Intent(ACTION_KEEP_ALIVE_GUIDANCE).setPackage(packageName))
             Log.w(TAG, "Keep-alive guidance threshold reached")
@@ -82,6 +91,30 @@ class PortalService : Service() {
         if (status.state == PortalProcessState.STOPPED || status.state == PortalProcessState.FAILED) {
             stopSelf()
         }
+    }
+
+    private fun setRelayState(state: RelayConnectionState) {
+        if (relayState == state) return
+        relayState = state
+        RelayStateHolder.state = state
+        sendBroadcast(
+            Intent(ACTION_PORTAL_RELAY)
+                .setPackage(packageName)
+                .putExtra(EXTRA_RELAY_STATE, state.name),
+        )
+        lastStatus?.let { updateForegroundNotification(it) }
+    }
+
+    private fun onPortalLogLine(raw: String) {
+        val redacted = RelayLogParser.redact(raw)
+        Log.i(PORTAL_STDOUT_TAG, redacted)
+        PortalLogBuffer.append(redacted)
+        sendBroadcast(
+            Intent(ACTION_PORTAL_LOG)
+                .setPackage(packageName)
+                .putExtra(EXTRA_LOG_TEXT, redacted),
+        )
+        RelayLogParser.parseLine(raw)?.let { parsed -> setRelayState(parsed) }
     }
 
     private fun startAsForeground(status: PortalProcessStatus) {
@@ -116,8 +149,16 @@ class PortalService : Service() {
             .build()
     }
 
+    private fun relayNotificationText(): String = when (relayState) {
+        RelayConnectionState.CONNECTING -> "relay connecting"
+        RelayConnectionState.CONNECTED -> "relay connected"
+        RelayConnectionState.RETRYING -> "relay reconnecting"
+        RelayConnectionState.REJECTED -> "relay rejected handshake"
+        RelayConnectionState.INVALID_LINK -> "invalid Loom link"
+    }
+
     private fun notificationText(status: PortalProcessStatus): String = when (status.state) {
-        PortalProcessState.RUNNING -> "Running: Portal process ${status.pid} is active"
+        PortalProcessState.RUNNING -> "Running: Portal process ${status.pid} is active; ${relayNotificationText()}"
         PortalProcessState.RESTARTING -> "Reconnecting: retry ${status.restartAttempt} of ${PortalProcessController.MAX_RESTART_ATTEMPTS}"
         PortalProcessState.STOPPED -> "Stopped"
         PortalProcessState.FAILED -> "Stopped after ${status.restartAttempt} failed restarts"
@@ -183,7 +224,13 @@ class PortalService : Service() {
         const val EXTRA_EXIT_CODE = "exit_code"
         const val EXTRA_RESTART_ATTEMPT = "restart_attempt"
 
+        const val ACTION_PORTAL_RELAY = "town.beings.portal.action.PORTAL_RELAY"
+        const val ACTION_PORTAL_LOG = "town.beings.portal.action.PORTAL_LOG"
+        const val EXTRA_RELAY_STATE = "relay_state"
+        const val EXTRA_LOG_TEXT = "log_text"
+
         private const val TAG = "PortalService"
+        private const val PORTAL_STDOUT_TAG = "portal-stdout"
         private const val PORTAL_LIBRARY_NAME = "libportal.so"
         private const val PORTAL_CONFIG_NAME = "portal.toml"
         private const val CA_BUNDLE_NAME = "ca-bundle.pem"
@@ -210,6 +257,7 @@ private class ProcessBuilderPortalLauncher(
     private val config: File,
     private val caBundle: File,
     private val callbackHandler: Handler,
+    private val onLogLine: (String) -> Unit,
 ) : PortalProcessLauncher {
     override fun start(onExit: (exitCode: Int) -> Unit): PortalProcess {
         check(executable.isFile) { "Portal executable is missing at ${executable.absolutePath}" }
@@ -221,7 +269,7 @@ private class ProcessBuilderPortalLauncher(
         val portalProcess = AndroidPortalProcess(process)
         Thread({
             process.inputStream.bufferedReader().use { reader ->
-                reader.forEachLine { }
+                reader.forEachLine { line -> onLogLine(line) }
             }
             val exitCode = process.waitFor()
             callbackHandler.post { onExit(exitCode) }
