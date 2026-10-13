@@ -45,7 +45,7 @@ class PortalService : Service() {
             },
             onStatus = ::onProcessStatus,
         )
-        Log.i(TAG, "Portal service created")
+        Log.i(TAG, "Portal service created (app ${BuildConfig.VERSION_NAME} vc${BuildConfig.VERSION_CODE})")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

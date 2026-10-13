@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -17,6 +17,10 @@ android {
         ndk {
             abiFilters += "arm64-v8a"
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     packaging {
