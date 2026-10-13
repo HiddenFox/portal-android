@@ -49,7 +49,7 @@ class PortalService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startAsForeground(PortalProcessStatus(PortalProcessState.RESTARTING))
+        startAsForeground(PortalStatusHolder.latest ?: PortalProcessStatus(PortalProcessState.RESTARTING))
         PortalConfigStore(
             file = File(filesDir, PORTAL_CONFIG_NAME),
             workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME),
@@ -63,7 +63,11 @@ class PortalService : Service() {
         }
         logRuntimePermissionStatus()
         controller.start()
-        return START_NOT_STICKY
+        // START_STICKY: after an external kill (permission change, package update,
+        // OEM background cleanup) the system recreates the service with a null
+        // intent; the code above never dereferences the intent, so the service
+        // comes back and relaunches libportal on its own.
+        return START_STICKY
     }
 
     private fun logRuntimePermissionStatus() {
@@ -90,6 +94,7 @@ class PortalService : Service() {
 
     private fun onProcessStatus(status: PortalProcessStatus) {
         lastStatus = status
+        PortalStatusHolder.latest = status
         if (status.state == PortalProcessState.RUNNING) setRelayState(RelayConnectionState.CONNECTING)
         if (status.state == PortalProcessState.RESTARTING && recordUnexpectedDisconnect()) {
             sendBroadcast(Intent(ACTION_KEEP_ALIVE_GUIDANCE).setPackage(packageName))
@@ -325,6 +330,34 @@ private class AndroidPortalProcess(private val process: Process) : PortalProcess
         get() = process.hashCode().toLong()
 
     override fun destroy() {
+        // SIGTERM first so libportal can close the relay socket cleanly; escalate
+        // to SIGKILL so a destroyed Service never leaves libportal behind.
         process.destroy()
+        Thread {
+            try {
+                val deadline = System.currentTimeMillis() + DESTROY_GRACE_MILLIS
+                while (System.currentTimeMillis() < deadline) {
+                    try {
+                        process.exitValue()
+                        return@Thread
+                    } catch (_: IllegalThreadStateException) {
+                        Thread.sleep(DESTROY_POLL_MILLIS)
+                    }
+                }
+                process.destroyForcibly()
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            } catch (_: Exception) {
+                // Process already gone; nothing to escalate.
+            }
+        }.apply {
+            name = "portal-destroy-escalator"
+            isDaemon = true
+        }.start()
+    }
+
+    private companion object {
+        const val DESTROY_GRACE_MILLIS = 2_000L
+        const val DESTROY_POLL_MILLIS = 200L
     }
 }
