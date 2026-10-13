@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 import android.app.Activity
 import android.content.BroadcastReceiver
@@ -55,6 +55,14 @@ class MainActivity : Activity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Android 13+ media audio permission: needed to read sound_recorder files via MediaStore
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            val pm = checkSelfPermission(android.Manifest.permission.READ_MEDIA_AUDIO)
+            if (pm != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.READ_MEDIA_AUDIO), 1)
+            }
+        }
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         applySystemBarInsets(findViewById(R.id.main_content))
