@@ -21,6 +21,8 @@ class MainActivity : Activity() {
     private lateinit var connectInput: EditText
     private lateinit var connectInputLayout: View
     private lateinit var saveButton: Button
+    private lateinit var startButton: Button
+    private lateinit var stopButton: Button
     private lateinit var savedLinkView: TextView
     private lateinit var editLinkButton: Button
     private lateinit var controlSection: View
@@ -72,10 +74,18 @@ class MainActivity : Activity() {
             override fun start() = PortalService.start(this@MainActivity)
             override fun stop() = PortalService.stop(this@MainActivity)
         })
-        findViewById<Button>(R.id.start_button).setOnClickListener {
+        startButton = findViewById(R.id.start_button)
+        stopButton = findViewById(R.id.stop_button)
+        startButton.setOnClickListener {
+            val active = currentStatus.state == PortalProcessState.RUNNING || currentStatus.state == PortalProcessState.RESTARTING
+            if (active) return@setOnClickListener
             processActions.start(currentStatus.state)
         }
-        findViewById<Button>(R.id.stop_button).setOnClickListener { processActions.stop() }
+        stopButton.setOnClickListener {
+            val idle = currentStatus.state == PortalProcessState.STOPPED || currentStatus.state == PortalProcessState.FAILED
+            if (idle) return@setOnClickListener
+            processActions.stop()
+        }
         findViewById<Button>(R.id.keep_alive_guide_button).setOnClickListener {
             startActivity(KeepAliveGuideActivity.intent(this))
         }
@@ -158,6 +168,9 @@ class MainActivity : Activity() {
         } else {
             base
         }
+        val active = status.state == PortalProcessState.RUNNING || status.state == PortalProcessState.RESTARTING
+        startButton.isEnabled = !active
+        stopButton.isEnabled = active
     }
 
     private fun relayLine(): String = when (RelayStateHolder.state) {
