@@ -1,40 +1,45 @@
 # portal-android
 
-heart-portal 的 Android 产品化壳工程。把已验证的 NDK bionic 构建的 portal 二进制包装成面向普通用户的 Android App：自动加载 Portal 为后台 Service、配置 loom token，并提供录音等本地数据的可靠投递。
+heart-portal 的 Android 壳。把 NDK bionic 构建的 portal 二进制包成普通用户可装的 App：粘贴连接链接 → 点启动 → 前台 Service 常驻拉起 portal 进程，手机即成为 Heart 可远程触达的 Portal 节点。
 
-## 项目定位
+**当前版本 v0.1.3**（[releases](https://github.com/HiddenFox/portal-android/releases)）｜主测机：Redmi Note 13（HyperOS）
 
-两个职责，一个 App：
+## 产品定位：纯连接器（2026-10-13 与人类伙伴拍板）
 
-1. **Portal 壳**：启动 App 即拉起 portal 进程（前台 Service 常驻），用户无需命令行。token 配置走 App 配置页。
-2. **投递守护**：带账本的采集器。扫描本地文件（如通话录音）→ 去重 → 投递到中转（飞书云盘/Town workspace）→ 记账 → 重试。协议性逻辑，不含业务逻辑。
+App 只做一件事：**保持 portal 连接活着**。不内置业务逻辑。
 
-## 设计哲学（与人类伙伴拍板）
-
-- **手机 = 投递守护，电脑 = 工作空间**。手机上只放协议性逻辑（扫描/去重/传输/记账/重试，filebeat 模式）；业务性逻辑（分析、转写调度、CRM 对接）全在电脑端。
-- 判断标准是可靠性而非位置：手机能无障碍闭环的部分（直传中转）放手机；一切需要频繁迭代的逻辑不进手机。
-- 中转完成语义：手机 put 到中转即完成，不做端到端 ACK。中转目录空 = 全链路闭环。
-- 幂等：文件名+md5 做投递键，电脑端按 md5 去重。
+- 配置只有一项：Being Loom connect link（粘贴后写入 `filesDir/portal.toml` 的 `connect` 字段，App 校验后自动重启服务）。
+- 手机上的能力边界 = portal 本身的能力（远程 exec、文件读写，经 relay WSS 出站连接，无入站端口）。
+- 已实证的核心用例：Heart 经 relay 远程读取手机本地文件（MIUI 通话录音 FUSE 直读，md5 与桌面副本一致）。
+- **不做**：录音事件监听（FileObserver+上行回调不进本 App——连接器不内置业务监听器）、投递扫描（DeliveryGuard 已在 TASK-006 整体剥离）、Play Store 合规、多用户。
 
 ## 架构
 
-- **二进制层**：heart-portal NDK bionic aarch64 构建（GHA workflow 产出，真机 VIVO V2366HA/Android 16 验证：--version/status 通过），改名 libportal.so 放 jniLibs/arm64-v8a/，Android 打包器自动解压到 nativeLibraryDir 并带执行权限。
-- **PortalService**（前台 Service）：startForegroundService + 通知栏常驻；ProcessBuilder 启动 libportal（--config 指向 app 私有目录 toml）；onDestroy 杀进程；进程退出监听 5s 自动重启。
-- **MainActivity**：开始/停止按钮、状态显示（relay 连接、MCP 端口）、配置页（token 粘贴 → filesDir/portal.toml）。
-- **DeliveryGuard**（投递守护）：WorkManager，JSON 账本（文件路径+md5 → 状态 pending/sent），扫描→去重→投递→记账→重试。
-- 保活：前台 Service + WakeLock/WifiLock（WSS 长连接不掉），VIVO 后台高耗电白名单引导页。
-- workspace：filesDir/workspace（app 私有目录，免存储权限）。
+- **二进制层**：heart-portal NDK bionic aarch64 构建（GHA 产出），改名 `libportal.so` 放 `jniLibs/arm64-v8a/`，Android 打包器自动解压到 nativeLibraryDir 并带执行权限。
+- **PortalService**（前台 Service）：`startForegroundService` + 通知常驻；ProcessBuilder 启动 libportal，注入 `SSL_CERT_FILE`（内置 CA bundle，修 Android 无系统 CA 路径问题）；进程退出 5s 自动重启；启动时打印版本与权限状态日志。
+- **MainActivity**：Material 3 单页——状态区（进程/relay）+ connect link 输入框 + 启动/停止。中英双语（`values-zh`）。
+- **权限模型**（v0.1.3）：`RuntimePermissions` 按 API 级别给出权限表（13+：READ_MEDIA_AUDIO + POST_NOTIFICATIONS；12-：旧存储权限），每次启动查缺补弹、合并申请；永久拒绝显示提示条直达应用设置。录音权限用于远程读取通话录音。
+- **保活**：前台 Service + WakeLock/WifiLock；`KeepAliveGuide` 按厂商给白名单指引（VIVO/小米/华为）；每次启动查电池优化白名单，未设置显示横幅直达。
+- **远程启动钩子**：`am start --ez town.beings.portal.AUTOSTART true` 走与启动按钮相同的代码路径（MIUI 拦 adb 拉起非导出 foreground service，此钩子绕过）。
+- **workspace**：`filesDir/workspace`（app 私有目录，免存储权限）。
 
-## 不做（MVP）
+## MIUI/HyperOS 实测边界（Redmi Note 13）
 
-Play Store 合规、多用户、fancy UI、MediaStore 桥接、入站端口监听（portal 是出站 WSS，无入站）。
+- 录音文件不进 MediaStore（查询 0 行），须 FUSE 直读 `/sdcard/MIUI/sound_recorder/call_rec/`（需 READ_MEDIA_AUDIO 运行时授权，用户弹窗点允许后永久生效）。
+- `pm grant`、`content` 查询、`am start-foreground-service`、`input tap/keyevent`（需「USB 调试(安全设置)」）均被拦。`install -r` 会杀 app 进程，服务须从 UI 或 AUTOSTART 钩子重启。
+- 安装：MIUI 拦部分 adb install（INSTALL_FAILED_USER_RESTRICTED），兜底 `adb push /sdcard/Download + am start VIEW` 拉起系统安装器。
 
-## 任务板
+## 任务板与历史
 
-docs/tasks/ 下按序号排列，TASK-001 起步。真机验收项在任务书内单列，由人类伙伴在 VIVO 真机执行。
+`docs/tasks/` TASK-001~006 任务书与 build notes。版本线：
+
+- v0.1.0：service + 基础 UI（TASK-001~003）
+- v0.1.1：向导式 UI + relay 状态行 + 应用内日志（da405ec）
+- v0.1.2：Material 3 重设计、DeliveryGuard 剥离、connect link 单一配置（3cdc23e/fd4c74f）
+- v0.1.3：权限自动化三件套 + AUTOSTART 钩子 + MIUI 录音直读（15cebeb，28/28 单测）
 
 ## 相关线
 
-- heart-portal 主仓：D:\Workspace\code\heart-portal（android-termux-support 分支）
-- 构建 CI：cak-ci 仓库 hp-android-smoke 分支（GHA，NDK r27 工具链）
-- SenseVoice 转写结论（2026-10-12）：API 质量够用（VIVO 真机录音实测），采集端走本 App 投递守护，转写调度在电脑端。
+- heart-portal 主仓：`D:\Workspace\code\heart-portal`（android-termux-support 分支）
+- 构建 CI：cak-ci 仓库 hp-android-smoke 分支（GHA，NDK r27）
+- 转写：SenseVoice API 质量够用（VIVO 真机录音实测）；转写调度在电脑端，不在本 App
