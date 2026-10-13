@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 import android.app.Activity
 import android.content.BroadcastReceiver
@@ -89,7 +89,10 @@ class MainActivity : Activity() {
             override fun stop() = PortalService.stop(this@MainActivity)
         })
         // Diagnostic/automation hook: am start --ez town.beings.portal.AUTOSTART true
-        if (intent?.getBooleanExtra("town.beings.portal.AUTOSTART", false) == true) {
+        // (bare --ez AUTOSTART true is accepted as well for automation ergonomics)
+        val autostartRequested = intent?.getBooleanExtra("town.beings.portal.AUTOSTART", false) == true ||
+            intent?.getBooleanExtra("AUTOSTART", false) == true
+        if (autostartRequested) {
             val activeNow = currentStatus.state == PortalProcessState.RUNNING ||
                 currentStatus.state == PortalProcessState.RESTARTING
             if (!activeNow) processActions.start(currentStatus.state)
@@ -157,6 +160,15 @@ class MainActivity : Activity() {
         } else {
             registerReceiver(statusReceiver, filter)
         }
+        // Status broadcasts only fire on state transitions; a recreated activity would
+        // otherwise stay stuck on its initial STOPPED state while the service runs.
+        // Adopt the latest known status from the process-wide holder instead.
+        PortalStatusHolder.latest?.let { latest ->
+            if (latest.state != PortalProcessState.STOPPED || currentStatus.state != PortalProcessState.FAILED) {
+                currentStatus = latest
+            }
+        }
+        renderStatus(currentStatus)
         renderKeepAliveHint()
     }
 

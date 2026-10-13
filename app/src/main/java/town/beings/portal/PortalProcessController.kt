@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 /** A process abstraction that keeps lifecycle policy testable without Android runtime classes. */
 interface PortalProcess {
@@ -29,6 +29,17 @@ data class PortalProcessStatus(
     val exitCode: Int? = null,
     val restartAttempt: Int = 0,
 )
+
+/**
+ * Process-wide holder for the latest reported process status, mirroring
+ * [RelayStateHolder]. Broadcasts only fire on state transitions, so an
+ * activity recreated while the service runs would otherwise stay on its
+ * initial STOPPED state forever. The holder lets the UI adopt the truth.
+ */
+object PortalStatusHolder {
+    @Volatile
+    var latest: PortalProcessStatus? = null
+}
 
 /**
  * Serial lifecycle policy for Portal. All methods must be called from one serialized executor.
