@@ -50,6 +50,11 @@ class PortalService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startAsForeground(PortalProcessStatus(PortalProcessState.RESTARTING))
+        PortalConfigStore(
+            file = File(filesDir, PORTAL_CONFIG_NAME),
+            workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME),
+            kitsDir = File(File(filesDir, ".heart-portal"), "kits"),
+        ).ensureKitsDir()
         val workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME)
         if (!workspace.exists() && !workspace.mkdirs()) {
             Log.e(TAG, "Portal workspace creation failed")

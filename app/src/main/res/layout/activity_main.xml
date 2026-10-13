@@ -56,25 +56,41 @@
                     android:layout_marginTop="16dp"
                     android:text="@string/save_configuration" />
 
-                <TextView
-                    android:id="@+id/saved_link_view"
+                <LinearLayout
+                    android:id="@+id/saved_link_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:breakStrategy="simple"
-                    android:fontFamily="monospace"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textIsSelectable="true"
-                    android:visibility="gone" />
+                    android:background="@drawable/saved_link_box"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:visibility="gone">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/edit_link_button"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/edit_link"
-                    android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/saved_link_view"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:breakStrategy="simple"
+                        android:fontFamily="monospace"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textIsSelectable="true" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/edit_link_button"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:minWidth="0dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="@string/edit_link" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

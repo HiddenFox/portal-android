@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var startButton: Button
     private lateinit var stopButton: Button
     private lateinit var savedLinkView: TextView
+    private lateinit var savedLinkBox: View
     private lateinit var editLinkButton: Button
     private lateinit var controlSection: View
     private lateinit var statusView: TextView
@@ -61,6 +62,7 @@ class MainActivity : Activity() {
         connectInputLayout = findViewById(R.id.connect_input_layout)
         saveButton = findViewById(R.id.save_button)
         savedLinkView = findViewById(R.id.saved_link_view)
+        savedLinkBox = findViewById(R.id.saved_link_box)
         editLinkButton = findViewById(R.id.edit_link_button)
         controlSection = findViewById(R.id.control_section)
         statusView = findViewById(R.id.portal_status)
@@ -69,7 +71,9 @@ class MainActivity : Activity() {
         configStore = PortalConfigStore(
             file = File(filesDir, PORTAL_CONFIG_NAME),
             workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME),
+            kitsDir = File(File(filesDir, ".heart-portal"), "kits"),
         )
+        configStore.ensureKitsDir()
         processActions = PortalServiceCommandHandler(object : PortalServiceCommands {
             override fun start() = PortalService.start(this@MainActivity)
             override fun stop() = PortalService.stop(this@MainActivity)
@@ -147,8 +151,7 @@ class MainActivity : Activity() {
         val showEditor = !configured || linkEditMode
         connectInputLayout.visibility = if (showEditor) View.VISIBLE else View.GONE
         saveButton.visibility = if (showEditor) View.VISIBLE else View.GONE
-        savedLinkView.visibility = if (configured && !linkEditMode) View.VISIBLE else View.GONE
-        editLinkButton.visibility = if (configured && !linkEditMode) View.VISIBLE else View.GONE
+        savedLinkBox.visibility = if (configured && !linkEditMode) View.VISIBLE else View.GONE
         controlSection.visibility = if (configured) View.VISIBLE else View.GONE
         if (configured && !linkEditMode) {
             savedLinkView.text = PortalLinkFormatter.mask(configStore.readConnectLink().orEmpty())

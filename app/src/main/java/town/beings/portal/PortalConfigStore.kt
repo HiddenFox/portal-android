@@ -1,4 +1,4 @@
-﻿package town.beings.portal
+package town.beings.portal
 
 import java.io.File
 
@@ -6,9 +6,28 @@ import java.io.File
 class PortalConfigStore(
     private val file: File,
     private val workspace: File,
+    private val kitsDir: File,
 ) {
     fun save(connectLink: String) {
-        file.writeText(PortalTomlSerializer.serialize(workspace.absolutePath, connectLink))
+        kitsDir.mkdirs()
+        file.writeText(PortalTomlSerializer.serialize(workspace.absolutePath, connectLink, kitsDir.absolutePath))
+    }
+
+    /**
+     * Upgrades a config written by an older build (no kits_dir entry). Without an
+     * explicit kits_dir the native side falls back to ~/.heart-portal/kits which on
+     * Android resolves to the unwritable /data prefix, causing a "No kits directory"
+     * debug log on every 5s hot-reload scan. Idempotent; also creates the directory.
+     */
+    fun ensureKitsDir() {
+        kitsDir.mkdirs()
+        if (!file.isFile) return
+        val lines = file.readLines()
+        if (lines.any { it.trim().startsWith("kits_dir") }) return
+        val newLines = lines.toMutableList()
+        val anchor = newLines.indexOfFirst { it.trim().startsWith("workspace") }
+        newLines.add(if (anchor >= 0) anchor + 1 else newLines.size, "kits_dir = \"${kitsDir.absolutePath}\"")
+        file.writeText(newLines.joinToString("\n") + "\n")
     }
 
     fun readConnectLink(): String? {
@@ -52,9 +71,10 @@ class PortalConfigStore(
 }
 
 object PortalTomlSerializer {
-    fun serialize(workspace: String, connectLink: String): String = buildString {
+    fun serialize(workspace: String, connectLink: String, kitsDir: String): String = buildString {
         appendString("workspace", workspace)
         appendString("connect", connectLink)
+        appendString("kits_dir", kitsDir)
     }
 
     private fun StringBuilder.appendString(name: String, value: String) {
