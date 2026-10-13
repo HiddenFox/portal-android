@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 import java.io.File
 
@@ -19,7 +19,7 @@ class PortalConfigStore(
                     match.groupValues[1] to unescapeString(match.groupValues[2])
                 }
             }
-            .toMap()["connect_link"]
+            .toMap()["connect"]
             ?.takeIf { it.isNotBlank() }
     }
 
@@ -54,7 +54,7 @@ class PortalConfigStore(
 object PortalTomlSerializer {
     fun serialize(workspace: String, connectLink: String): String = buildString {
         appendString("workspace", workspace)
-        appendString("connect_link", connectLink)
+        appendString("connect", connectLink)
     }
 
     private fun StringBuilder.appendString(name: String, value: String) {

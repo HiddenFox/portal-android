@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 import java.io.File
 import kotlin.test.Test
@@ -15,7 +15,7 @@ class PortalConfigStoreTest {
         )
         assertEquals(
             "workspace = \"/data/user/0/town.beings.portal/files/workspace\"\n" +
-                "connect_link = \"https://echo.beings.town/frank/?token=abc\\\\\\\"next\"\n",
+                "connect = \"https://echo.beings.town/frank/?token=abc\\\\\\\"next\"\n",
             content,
         )
         assertFalse(content.contains("portal_mcp_token"))
@@ -33,9 +33,9 @@ class PortalConfigStoreTest {
             store.save(link)
             val content = file.readText()
             assertEquals(link, store.readConnectLink())
-            assertTrue(content.contains("connect_link = \"$link\""))
+            assertTrue(content.contains("connect = \"$link\""))
             assertFalse(content.contains("portal_mcp_token"))
-            assertFalse(content.contains("connect ="))
+            assertFalse(content.contains("connect_link"))
         } finally {
             file.delete()
         }

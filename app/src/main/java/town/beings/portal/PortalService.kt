@@ -1,4 +1,4 @@
-package town.beings.portal
+﻿package town.beings.portal
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -30,6 +30,7 @@ class PortalService : Service() {
             launcher = ProcessBuilderPortalLauncher(
                 executable = File(applicationInfo.nativeLibraryDir, PORTAL_LIBRARY_NAME),
                 config = File(filesDir, PORTAL_CONFIG_NAME),
+                caBundle = File(filesDir, CA_BUNDLE_NAME),
                 callbackHandler = mainHandler,
             ),
             scheduler = RestartScheduler { delayMillis, task ->
@@ -175,6 +176,7 @@ class PortalService : Service() {
 
     companion object {
         const val ACTION_PORTAL_STATUS = "town.beings.portal.action.PORTAL_STATUS"
+
         const val ACTION_KEEP_ALIVE_GUIDANCE = "town.beings.portal.action.KEEP_ALIVE_GUIDANCE"
         const val EXTRA_STATE = "state"
         const val EXTRA_PID = "pid"
@@ -184,6 +186,7 @@ class PortalService : Service() {
         private const val TAG = "PortalService"
         private const val PORTAL_LIBRARY_NAME = "libportal.so"
         private const val PORTAL_CONFIG_NAME = "portal.toml"
+        private const val CA_BUNDLE_NAME = "ca-bundle.pem"
         private const val WORKSPACE_DIRECTORY_NAME = "workspace"
         private const val NOTIFICATION_CHANNEL_ID = "portal"
         private const val NOTIFICATION_ID = 2_002
@@ -205,12 +208,15 @@ class PortalService : Service() {
 private class ProcessBuilderPortalLauncher(
     private val executable: File,
     private val config: File,
+    private val caBundle: File,
     private val callbackHandler: Handler,
 ) : PortalProcessLauncher {
     override fun start(onExit: (exitCode: Int) -> Unit): PortalProcess {
         check(executable.isFile) { "Portal executable is missing at ${executable.absolutePath}" }
+        ensureCaBundle()
         val process = ProcessBuilder(executable.absolutePath, "--config", config.absolutePath)
             .redirectErrorStream(true)
+            .apply { environment()["SSL_CERT_FILE"] = caBundle.absolutePath }
             .start()
         val portalProcess = AndroidPortalProcess(process)
         Thread({
@@ -221,6 +227,29 @@ private class ProcessBuilderPortalLauncher(
             callbackHandler.post { onExit(exitCode) }
         }, "portal-exit-watcher").start()
         return portalProcess
+    }
+
+    /**
+     * heart-portal relies on rustls-native-certs, which finds no root certificates on
+     * Android because the standard Linux CA paths do not exist there. Merge the system
+     * trust store into one bundle and point SSL_CERT_FILE at it so the relay WSS
+     * handshake can verify the server certificate.
+     */
+    private fun ensureCaBundle() {
+        if (caBundle.isFile && caBundle.length() > 0L) return
+        val systemCerts = File(SYSTEM_CA_DIR)
+        if (!systemCerts.isDirectory) return
+        val certificates = systemCerts.listFiles().orEmpty().sortedBy { it.name }
+        if (certificates.isEmpty()) return
+        caBundle.outputStream().use { output ->
+            certificates.forEach { certificate ->
+                certificate.inputStream().use { it.copyTo(output) }
+            }
+        }
+    }
+
+    private companion object {
+        const val SYSTEM_CA_DIR = "/system/etc/security/cacerts"
     }
 }
 
