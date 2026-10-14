@@ -16,6 +16,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import java.io.File
+import java.io.IOException
 
 class PortalService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -141,11 +142,19 @@ class PortalService : Service() {
     }
 
     private fun startAsForeground(status: PortalProcessStatus) {
-        val notification = buildNotification(status)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            val notification = buildNotification(status)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (error: Exception) {
+            Log.w(TAG, "Foreground start failed; continuing in background", error)
         }
     }
 
@@ -291,10 +300,19 @@ private class ProcessBuilderPortalLauncher(
             .start()
         val portalProcess = AndroidPortalProcess(process)
         Thread({
-            process.inputStream.bufferedReader().use { reader ->
-                reader.forEachLine { line -> onLogLine(line) }
+            try {
+                process.inputStream.bufferedReader().use { reader ->
+                    reader.forEachLine { line -> onLogLine(line) }
+                }
+            } catch (error: IOException) {
+                Log.i(EXIT_WATCHER_TAG, "Stdout pipe closed during process destroy; waiting for exit: ${error.message}")
             }
-            val exitCode = process.waitFor()
+            val exitCode = try {
+                process.waitFor()
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                -1
+            }
             callbackHandler.post { onExit(exitCode) }
         }, "portal-exit-watcher").start()
         return portalProcess
@@ -321,6 +339,7 @@ private class ProcessBuilderPortalLauncher(
 
     private companion object {
         const val SYSTEM_CA_DIR = "/system/etc/security/cacerts"
+        const val EXIT_WATCHER_TAG = "portal-exit-watcher"
     }
 }
 
