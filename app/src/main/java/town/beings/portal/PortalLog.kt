@@ -1,5 +1,7 @@
 package town.beings.portal
 
+import android.os.SystemClock
+
 /**
  * Relay connection state as observed from the native portal process stdout.
  *
@@ -57,6 +59,19 @@ object PortalLinkFormatter {
 object RelayStateHolder {
     @Volatile
     var state: RelayConnectionState = RelayConnectionState.CONNECTING
+    @Volatile var retryingSinceElapsedMillis: Long? = null
+    @Volatile var lastHandshakeElapsedMillis: Long? = null
+    @Volatile var lastRetryElapsedMillis: Long? = null
+
+    fun update(state: RelayConnectionState) {
+        this.state = state
+        val now = SystemClock.elapsedRealtime()
+        when (state) {
+            RelayConnectionState.CONNECTED -> { lastHandshakeElapsedMillis = now; retryingSinceElapsedMillis = null }
+            RelayConnectionState.RETRYING -> { lastRetryElapsedMillis = now; if (retryingSinceElapsedMillis == null) retryingSinceElapsedMillis = now }
+            else -> Unit
+        }
+    }
 }
 
 object PortalLogBuffer {

@@ -33,4 +33,10 @@
     <string name="battery_settings_unavailable">Could not open battery settings on this device. Follow the path above manually.</string>
     <string name="permission_recording_denied_hint">Recording access is off — call recordings cannot be read. Tap to open app settings.</string>
     <string name="keep_alive_hint">Background keep-alive is not set up. The system may stop Portal while it is in the background. Tap for the setup guide.</string>
+    <string name="setup_notifications">Notifications: not allowed — open settings</string>
+    <string name="setup_notifications_ready">Notifications: allowed</string>
+    <string name="setup_battery">Battery optimization: active — open settings</string>
+    <string name="setup_battery_ready">Battery optimization: ignored</string>
+    <string name="setup_autostart">Xiaomi autostart: check in settings</string>
+    <string name="relay_timestamps">Last relay handshake: %1$s\nLast relay retry: %2$s</string>
 </resources>

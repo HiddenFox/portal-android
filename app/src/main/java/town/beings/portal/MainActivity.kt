@@ -13,6 +13,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
+import android.os.SystemClock
+import android.provider.Settings
+import android.net.Uri
 import android.widget.Toast
 import java.io.File
 import java.net.URI
@@ -37,6 +40,7 @@ class MainActivity : Activity() {
     private lateinit var configStore: PortalConfigStore
     private lateinit var permissionHintView: TextView
     private lateinit var keepAliveHintView: TextView
+    private lateinit var relayTimestampsView: TextView
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -78,6 +82,7 @@ class MainActivity : Activity() {
         logView = findViewById(R.id.portal_log)
         permissionHintView = findViewById(R.id.permission_hint)
         keepAliveHintView = findViewById(R.id.keep_alive_hint)
+        relayTimestampsView = findViewById(R.id.relay_timestamps)
         configStore = PortalConfigStore(
             file = File(filesDir, PORTAL_CONFIG_NAME),
             workspace = File(filesDir, WORKSPACE_DIRECTORY_NAME),
@@ -118,6 +123,9 @@ class MainActivity : Activity() {
         keepAliveHintView.setOnClickListener {
             startActivity(KeepAliveGuideActivity.intent(this))
         }
+        findViewById<Button>(R.id.notification_setup_button).setOnClickListener { startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)) }
+        findViewById<Button>(R.id.battery_setup_button).setOnClickListener { startActivity(KeepAliveGuide.batteryOptimizationIntent(packageName)) }
+        findViewById<Button>(R.id.autostart_setup_button).setOnClickListener { openAutostartSettings() }
         editLinkButton.setOnClickListener {
             linkEditMode = true
             connectInput.setText(configStore.readConnectLink().orEmpty())
@@ -145,6 +153,7 @@ class MainActivity : Activity() {
         renderStatus(currentStatus)
         renderLogSnapshot()
         renderKeepAliveHint()
+        renderStartupChecklist()
     }
 
     override fun onStart() {
@@ -170,6 +179,7 @@ class MainActivity : Activity() {
         }
         renderStatus(currentStatus)
         renderKeepAliveHint()
+        renderStartupChecklist()
     }
 
     override fun onStop() {
@@ -226,6 +236,7 @@ class MainActivity : Activity() {
         } else {
             base
         }
+        renderRelayTimestamps()
         val active = status.state == PortalProcessState.RUNNING || status.state == PortalProcessState.RESTARTING
         startButton.isEnabled = !active
         stopButton.isEnabled = active
@@ -276,6 +287,30 @@ class MainActivity : Activity() {
     private fun renderKeepAliveHint() {
         keepAliveHintView.visibility =
             if (KeepAliveGuide.isIgnoringBatteryOptimizations(this)) View.GONE else View.VISIBLE
+    }
+
+    private fun renderStartupChecklist() {
+        val notificationsMissing = Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        findViewById<Button>(R.id.notification_setup_button).setText(
+            if (notificationsMissing) R.string.setup_notifications else R.string.setup_notifications_ready,
+        )
+        val batteryMissing = !KeepAliveGuide.isIgnoringBatteryOptimizations(this)
+        findViewById<Button>(R.id.battery_setup_button).setText(
+            if (batteryMissing) R.string.setup_battery else R.string.setup_battery_ready,
+        )
+        findViewById<Button>(R.id.autostart_setup_button).visibility =
+            if (KeepAliveGuide.currentManufacturer() == DeviceManufacturer.XIAOMI) View.VISIBLE else View.GONE
+    }
+
+    private fun renderRelayTimestamps() {
+        fun value(at: Long?): String = at?.let { "${(SystemClock.elapsedRealtime() - it) / 1000}s ago" } ?: getString(R.string.not_available)
+        relayTimestampsView.text = getString(R.string.relay_timestamps, value(RelayStateHolder.lastHandshakeElapsedMillis), value(RelayStateHolder.lastRetryElapsedMillis))
+    }
+
+    private fun openAutostartSettings() {
+        val miui = Intent("miui.intent.action.OP_AUTO_START").setData(Uri.parse("package:$packageName"))
+        val fallback = appDetailsSettingsIntent()
+        startActivity(if (miui.resolveActivity(packageManager) != null) miui else fallback)
     }
 
     private fun appDetailsSettingsIntent(): Intent =

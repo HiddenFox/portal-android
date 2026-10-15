@@ -2,7 +2,7 @@
 
 heart-portal 的 Android 壳。把 NDK bionic 构建的 portal 二进制包成普通用户可装的 App：粘贴连接链接 → 点启动 → 前台 Service 常驻拉起 portal 进程，手机即成为 Heart 可远程触达的 Portal 节点。
 
-**当前版本 v0.1.3**（[releases](https://github.com/HiddenFox/portal-android/releases)）｜主测机：Redmi Note 13（HyperOS）
+**当前版本 v0.1.8**（[releases](https://github.com/HiddenFox/portal-android/releases)）｜主测机：Redmi Note 13（HyperOS）
 
 ## 产品定位：纯连接器（2026-10-13 与人类伙伴拍板）
 
@@ -37,6 +37,7 @@ App 只做一件事：**保持 portal 连接活着**。不内置业务逻辑。
 - v0.1.1：向导式 UI + relay 状态行 + 应用内日志（da405ec）
 - v0.1.2：Material 3 重设计、DeliveryGuard 剥离、connect link 单一配置（3cdc23e/fd4c74f）
 - v0.1.3：权限自动化三件套 + AUTOSTART 钩子 + MIUI 录音直读（15cebeb，28/28 单测）
+- v0.1.8：relay scheduling-gap diagnostics, validated-network recovery observation, relay lifecycle timestamps, and first-launch notification/battery/Xiaomi autostart checklist.
 
 ## 相关线
 

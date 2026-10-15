@@ -9,6 +9,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.wifi.WifiManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -23,6 +26,19 @@ class PortalService : Service() {
     private lateinit var controller: PortalProcessController
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
+    private lateinit var connectivityManager: ConnectivityManager
+    private var networkCallbackRegistered = false
+    private var lastNetworkRecoveryElapsedMillis = 0L
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) = onNetworkAvailable(network)
+        override fun onLost(network: Network) {
+            // A loss may be transient during handoff; mark only the relay UI degraded.
+            mainHandler.post {
+                setRelayState(RelayConnectionState.RETRYING)
+                Log.i(TAG, "Network lost; relay marked degraded without process restart")
+            }
+        }
+    }
 
     @Volatile
     private var lastStatus: PortalProcessStatus? = null
@@ -33,6 +49,7 @@ class PortalService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        connectivityManager = getSystemService(ConnectivityManager::class.java)
         controller = PortalProcessController(
             launcher = ProcessBuilderPortalLauncher(
                 executable = File(applicationInfo.nativeLibraryDir, PORTAL_LIBRARY_NAME),
@@ -47,6 +64,7 @@ class PortalService : Service() {
             onStatus = ::onProcessStatus,
         )
         Log.i(TAG, "Portal service created (app ${BuildConfig.VERSION_NAME} vc${BuildConfig.VERSION_CODE})")
+        registerNetworkCallback()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -84,6 +102,7 @@ class PortalService : Service() {
     }
 
     override fun onDestroy() {
+        unregisterNetworkCallback()
         controller.stop()
         releaseLocks()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -120,7 +139,7 @@ class PortalService : Service() {
     private fun setRelayState(state: RelayConnectionState) {
         if (relayState == state) return
         relayState = state
-        RelayStateHolder.state = state
+        RelayStateHolder.update(state)
         sendBroadcast(
             Intent(ACTION_PORTAL_RELAY)
                 .setPackage(packageName)
@@ -139,6 +158,31 @@ class PortalService : Service() {
                 .putExtra(EXTRA_LOG_TEXT, redacted),
         )
         RelayLogParser.parseLine(raw)?.let { parsed -> setRelayState(parsed) }
+    }
+
+    private fun registerNetworkCallback() {
+        if (networkCallbackRegistered) return
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        networkCallbackRegistered = true
+        Log.i(TAG, "Network callback registered")
+    }
+
+    private fun unregisterNetworkCallback() {
+        if (!networkCallbackRegistered) return
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+        networkCallbackRegistered = false
+        Log.i(TAG, "Network callback unregistered")
+    }
+
+    private fun onNetworkAvailable(network: Network) {
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return
+        if (!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return
+        val retryingSince = RelayStateHolder.retryingSinceElapsedMillis ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - retryingSince < NETWORK_RECOVERY_DEBOUNCE_MILLIS || now - lastNetworkRecoveryElapsedMillis < NETWORK_RECOVERY_THROTTLE_MILLIS) return
+        lastNetworkRecoveryElapsedMillis = now
+        // No stdin control protocol exists yet; never kill a healthy child as a substitute.
+        Log.i(TAG, "Validated network recovered while relay is retrying; native reconnect control is unavailable")
     }
 
     private fun startAsForeground(status: PortalProcessStatus) {
@@ -273,6 +317,8 @@ class PortalService : Service() {
         private const val KEEP_ALIVE_DISCONNECT_TIMESTAMPS = "unexpected_disconnect_timestamps"
         private const val NO_PID = -1L
         private const val NO_EXIT_CODE = Int.MIN_VALUE
+        private const val NETWORK_RECOVERY_DEBOUNCE_MILLIS = 7_000L
+        private const val NETWORK_RECOVERY_THROTTLE_MILLIS = 30_000L
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, PortalService::class.java))

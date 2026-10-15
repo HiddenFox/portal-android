@@ -11,8 +11,8 @@ android {
         applicationId = "town.beings.portal"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.1.7"
+        versionCode = 9
+        versionName = "0.1.8"
 
         ndk {
             abiFilters += "arm64-v8a"
