@@ -11,7 +11,7 @@ android {
         applicationId = "town.beings.portal"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
+        versionCode = 10
         versionName = "0.1.8"
 
         ndk {

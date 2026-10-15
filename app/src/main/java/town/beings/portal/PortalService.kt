@@ -162,9 +162,13 @@ class PortalService : Service() {
 
     private fun registerNetworkCallback() {
         if (networkCallbackRegistered) return
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
-        networkCallbackRegistered = true
-        Log.i(TAG, "Network callback registered")
+        try {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            networkCallbackRegistered = true
+            Log.i(TAG, "Network callback registered")
+        } catch (e: Exception) {
+            Log.e(TAG, "Network callback registration failed; falling back to Rust retry loop only", e)
+        }
     }
 
     private fun unregisterNetworkCallback() {
